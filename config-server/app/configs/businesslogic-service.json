@@ -1,0 +1,5 @@
+{
+  "rabbitmq_url": "amqp://guest:guest@rabbitmq/",
+  "cids_service_url": "http://cids-service:8011",
+  "orchestrator_service_url": "http://orchestrator-service:8012"
+}

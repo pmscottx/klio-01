@@ -1,0 +1,223 @@
+version: "3.9"
+
+networks:
+  klio-net:
+    driver: bridge
+
+volumes:
+  cids-db:
+  lp-db:
+  vin-db:
+  rabbitmq-data:
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - klio-net
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  config-server:
+    build: ./config-server
+    networks:
+      - klio-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  service-registry:
+    build: ./service-registry
+    ports:
+      - "8001:8001"
+    networks:
+      - klio-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cids-service:
+    build: ./cids-service
+    ports:
+      - "8011:8011"
+    volumes:
+      - cids-db:/app/data
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8000
+      SERVICE_REGISTRY_URL: http://service-registry:8001
+      SERVICE_NAME: cids-service
+      SERVICE_URL: http://cids-service:8011
+    networks:
+      - klio-net
+
+  licenceplate-validator:
+    build: ./licenceplate-validator
+    ports:
+      - "8015:8015"
+    volumes:
+      - lp-db:/app/data
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8000
+      SERVICE_REGISTRY_URL: http://service-registry:8001
+      SERVICE_NAME: licenceplate-validator
+      SERVICE_URL: http://licenceplate-validator:8015
+    networks:
+      - klio-net
+
+  vin-validator:
+    build: ./vin-validator
+    ports:
+      - "8016:8016"
+    volumes:
+      - vin-db:/app/data
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8000
+      SERVICE_REGISTRY_URL: http://service-registry:8001
+      SERVICE_NAME: vin-validator
+      SERVICE_URL: http://vin-validator:8016
+    networks:
+      - klio-net
+
+  licenceplate-detector:
+    build: ./licenceplate-detector
+    ports:
+      - "8013:8013"
+    volumes:
+      - ./models:/app/models:ro
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8000
+      SERVICE_REGISTRY_URL: http://service-registry:8001
+      SERVICE_NAME: licenceplate-detector
+      SERVICE_URL: http://licenceplate-detector:8013
+    networks:
+      - klio-net
+
+  vin-detector:
+    build: ./vin-detector
+    ports:
+      - "8014:8014"
+    volumes:
+      - ./models:/app/models:ro
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8000
+      SERVICE_REGISTRY_URL: http://service-registry:8001
+      SERVICE_NAME: vin-detector
+      SERVICE_URL: http://vin-detector:8014
+    networks:
+      - klio-net
+
+  orchestrator-service:
+    build: ./orchestrator-service
+    ports:
+      - "8012:8012"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8000
+      SERVICE_REGISTRY_URL: http://service-registry:8001
+      SERVICE_NAME: orchestrator-service
+      SERVICE_URL: http://orchestrator-service:8012
+    networks:
+      - klio-net
+
+  businesslogic-service:
+    build: ./businesslogic-service
+    ports:
+      - "8010:8010"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      cids-service:
+        condition: service_started
+      orchestrator-service:
+        condition: service_started
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8000
+      SERVICE_REGISTRY_URL: http://service-registry:8001
+      SERVICE_NAME: businesslogic-service
+      SERVICE_URL: http://businesslogic-service:8010
+    networks:
+      - klio-net
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      service-registry:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVER_URL: http://config-server:8000
+      SERVICE_REGISTRY_URL: http://service-registry:8001
+      SERVICE_NAME: api-gateway
+      SERVICE_URL: http://api-gateway:8080
+    networks:
+      - klio-net
+
+  web-app:
+    build: ./web-app
+    ports:
+      - "8090:8090"
+    depends_on:
+      - api-gateway
+    environment:
+      API_GATEWAY_URL: http://api-gateway:8080
+      API_KEY: demo-key-123
+    networks:
+      - klio-net

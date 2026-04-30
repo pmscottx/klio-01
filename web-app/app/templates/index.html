@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Klio — Inspekcja pojazdu</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="card-title mb-1">Inspekcja pojazdu</h2>
+                    <p class="text-muted mb-4">Prześlij zdjęcia pojazdu, aby wykryć numer rejestracyjny i VIN.</p>
+
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+
+                    <form action="/upload" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="files" class="form-label fw-semibold">Zdjęcia pojazdu</label>
+                            <input
+                                class="form-control"
+                                type="file"
+                                id="files"
+                                name="files"
+                                accept=".jpg,.jpeg,.png"
+                                multiple
+                                required
+                            >
+                            <div class="form-text">Obsługiwane formaty: JPG, JPEG, PNG. Można wybrać wiele plików.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            Wyślij do analizy
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

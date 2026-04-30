@@ -1,0 +1,5 @@
+{
+  "rabbitmq_url": "amqp://guest:guest@rabbitmq/",
+  "model_path": "/app/models/licenceplate-model.pt",
+  "detection_delay": 3
+}
