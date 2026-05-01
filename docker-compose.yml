@@ -21,7 +21,7 @@ services:
       retries: 10
 
   config-server:
-    build: ./config-server
+    build: ./src/config-server
     ports:
       - "8000:8000"
     healthcheck:
@@ -31,7 +31,7 @@ services:
       retries: 10
 
   service-registry:
-    build: ./service-registry
+    build: ./src/service-registry
     ports:
       - "8001:8001"
     environment:
@@ -46,7 +46,7 @@ services:
       retries: 10
 
   uuid-service:
-    build: ./uuid-service
+    build: ./src/uuid-service
     ports:
       - "8011:8011"
     environment:
@@ -61,7 +61,7 @@ services:
         condition: service_healthy
 
   orchestrator-service:
-    build: ./orchestrator-service
+    build: ./src/orchestrator-service
     ports:
       - "8012:8012"
     volumes:
@@ -82,7 +82,7 @@ services:
         condition: service_started
 
   licenceplate-detector:
-    build: ./licenceplate-detector
+    build: ./src/licenceplate-detector
     ports:
       - "8013:8013"
     volumes:
@@ -102,7 +102,7 @@ services:
         condition: service_healthy
 
   vin-detector:
-    build: ./vin-detector
+    build: ./src/vin-detector
     ports:
       - "8014:8014"
     volumes:
@@ -122,7 +122,7 @@ services:
         condition: service_healthy
 
   dbvalidator-service:
-    build: ./dbvalidator-service
+    build: ./src/dbvalidator-service
     ports:
       - "8015:8015"
     volumes:
@@ -141,7 +141,7 @@ services:
         condition: service_healthy
 
   api-gateway:
-    build: ./api-gateway
+    build: ./src/api-gateway
     ports:
       - "8080:8080"
     environment:
@@ -156,7 +156,7 @@ services:
         condition: service_healthy
 
   web-app:
-    build: ./web-app
+    build: ./src/web-app
     ports:
       - "8090:8090"
     environment:
