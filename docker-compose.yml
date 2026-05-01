@@ -1,0 +1,166 @@
+version: "3.9"
+
+volumes:
+  orchestrator-db:
+  validator-db:
+  rabbitmq-data:
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  config-server:
+    build: ./config-server
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  service-registry:
+    build: ./service-registry
+    ports:
+      - "8001:8001"
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8000
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  uuid-service:
+    build: ./uuid-service
+    ports:
+      - "8011:8011"
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8000
+      - SERVICE_REGISTRY_URL=http://service-registry:8001
+      - SERVICE_NAME=uuid-service
+      - SERVICE_URL=http://uuid-service:8011
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+
+  orchestrator-service:
+    build: ./orchestrator-service
+    ports:
+      - "8012:8012"
+    volumes:
+      - orchestrator-db:/app/data
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8000
+      - SERVICE_REGISTRY_URL=http://service-registry:8001
+      - SERVICE_NAME=orchestrator-service
+      - SERVICE_URL=http://orchestrator-service:8012
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      uuid-service:
+        condition: service_started
+
+  licenceplate-detector:
+    build: ./licenceplate-detector
+    ports:
+      - "8013:8013"
+    volumes:
+      - ./models:/app/models:ro
+      - ./images:/app/images:ro
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8000
+      - SERVICE_REGISTRY_URL=http://service-registry:8001
+      - SERVICE_NAME=licenceplate-detector
+      - SERVICE_URL=http://licenceplate-detector:8013
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  vin-detector:
+    build: ./vin-detector
+    ports:
+      - "8014:8014"
+    volumes:
+      - ./models:/app/models:ro
+      - ./images:/app/images:ro
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8000
+      - SERVICE_REGISTRY_URL=http://service-registry:8001
+      - SERVICE_NAME=vin-detector
+      - SERVICE_URL=http://vin-detector:8014
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  dbvalidator-service:
+    build: ./dbvalidator-service
+    ports:
+      - "8015:8015"
+    volumes:
+      - validator-db:/app/data
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8000
+      - SERVICE_REGISTRY_URL=http://service-registry:8001
+      - SERVICE_NAME=dbvalidator-service
+      - SERVICE_URL=http://dbvalidator-service:8015
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8000
+      - SERVICE_REGISTRY_URL=http://service-registry:8001
+      - SERVICE_NAME=api-gateway
+      - SERVICE_URL=http://api-gateway:8080
+    depends_on:
+      config-server:
+        condition: service_healthy
+      service-registry:
+        condition: service_healthy
+
+  web-app:
+    build: ./web-app
+    ports:
+      - "8090:8090"
+    environment:
+      - API_GATEWAY_URL=http://api-gateway:8080
+      - API_KEY=demo-key-123
+    depends_on:
+      - api-gateway
