@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "config-server"
+version = "0.1.0"
+description = "Config Server — klio-01"
+authors = []
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.111"
+uvicorn = {extras = ["standard"], version = "^0.29"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

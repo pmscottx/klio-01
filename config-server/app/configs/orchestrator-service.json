@@ -1,0 +1,5 @@
+{
+  "rabbitmq_url": "amqp://guest:guest@rabbitmq/",
+  "database_url": "sqlite+aiosqlite:////app/data/orchestrator.db",
+  "uuid_service_url": "http://uuid-service:8011"
+}

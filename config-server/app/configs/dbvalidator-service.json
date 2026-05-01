@@ -1,0 +1,4 @@
+{
+  "rabbitmq_url": "amqp://guest:guest@rabbitmq/",
+  "database_url": "sqlite+aiosqlite:////app/data/validator.db"
+}
